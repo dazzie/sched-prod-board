@@ -13,9 +13,41 @@ footer { color: #777; font-size: 13px; }
 .status.stale { color: #b00020; }
 .loader, .empty { margin: 0; padding: 12px; color: #555; }
 .row.is-acked { background: #f3f8f3; }
-.row .ack { min-width: 72px; min-height: 30px; font: inherit; border: 1px solid #1d1d1f; border-radius: 6px; background: #fff; cursor: pointer; }
-.row .ack:hover { background: #1d1d1f; color: #fff; }
-.row .ack:disabled { opacity: 0.6; cursor: progress; }
-.row .ack.failed { border-color: #b00020; color: #b00020; }
-.row .acked { min-width: 72px; color: #1b6e2d; font-weight: 600; white-space: nowrap; }
 footer code { font-family: ui-monospace, monospace; }
+
+/* The list and the incident panel sit side by side. The panel's column is always there, so opening or
+   closing the panel never moves a row, and a row that moves never moves the panel. */
+.board { display: grid; grid-template-columns: minmax(0, 960px) minmax(200px, 256px); gap: 16px; align-items: start; }
+.list-col { min-width: 0; }
+.row { cursor: pointer; }
+.row:hover { background: #f4f6fb; }
+.row:focus-visible { outline: 2px solid #1d4ed8; outline-offset: -2px; }
+.row[aria-current="true"] { box-shadow: inset 4px 0 0 #1d4ed8; background: #eef3ff; }
+.row.is-acked[aria-current="true"] { background: #eaf4ea; }
+.panel-col { position: sticky; top: 12px; }
+.panel-hint { margin: 0; padding: 12px; color: #777; border: 1px dashed #ccc; border-radius: 8px; }
+.panel { position: relative; padding: 14px 14px 16px; border: 1px solid #1d4ed8; border-radius: 8px; background: #fff; }
+.panel[hidden], .panel-hint[hidden] { display: none; }
+.panel p { margin: 4px 0; }
+.panel-id { margin: 0 28px 4px 0; font: 600 20px ui-monospace, monospace; }
+.panel-sev.sev1 { color: #b00020; font-weight: 600; }
+.panel-sev.sev2 { color: #a15c00; }
+.panel-summary { font-weight: 600; }
+.panel-opened { color: #555; font-variant-numeric: tabular-nums; }
+.panel .ack { display: block; width: 100%; min-height: 40px; margin-top: 12px; font: inherit; font-weight: 600; border: 1px solid #1d1d1f; border-radius: 6px; background: #1d1d1f; color: #fff; cursor: pointer; }
+.panel .ack:disabled { opacity: 0.6; cursor: progress; }
+.panel .acked { display: block; margin-top: 12px; color: #1b6e2d; font-weight: 600; }
+.panel-error { color: #b00020; }
+.panel-close { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; font-size: 20px; line-height: 1; color: #555; cursor: pointer; }
+.panel-close:hover { background: #eee; }
+
+/* Narrow screens: the panel is a sheet fixed to the bottom edge, again outside the list's flow. */
+@media (max-width: 860px) {
+  .board { grid-template-columns: minmax(0, 1fr); }
+  .panel-col { position: fixed; top: auto; left: 0; right: 0; bottom: 0; padding: 8px; z-index: 10; }
+  .panel-hint { display: none; }
+  .panel { box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15); }
+  body { padding-bottom: 240px; }
+  .row { grid-template-columns: 80px 44px 1fr; }
+  .row time { grid-column: 1 / -1; }
+}

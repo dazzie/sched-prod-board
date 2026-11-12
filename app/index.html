@@ -13,9 +13,16 @@
       <h1>incidents</h1>
       <p class="sub">sched-prod · tonight <span class="status" aria-live="polite"></span></p>
     </header>
-    <main data-testid="board">
-      <p data-testid="loader" class="loader" role="status">Loading incidents…</p>
-      <ul data-testid="incident-list" class="list"></ul>
+    <main data-testid="board" class="board">
+      <div class="list-col">
+        <p data-testid="loader" class="loader" role="status">Loading incidents…</p>
+        <ul data-testid="incident-list" class="list"></ul>
+      </div>
+      <!-- The panel has its own fixed place: it never moves when the list does, and opening it never moves the list. -->
+      <aside class="panel-col" aria-live="polite">
+        <p class="panel-hint">Select an incident to open it and ack it.</p>
+        <section data-testid="incident-panel" class="panel" aria-label="Incident" hidden></section>
+      </aside>
     </main>
     <footer>sched-prod incident board · build <code data-testid="build-sha">__BUILD_SHA__</code></footer>
   </body>

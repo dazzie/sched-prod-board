@@ -83,35 +83,62 @@ top = await waitForNewTop(top);
 note('watch-board: a new incident appeared at the top without a reload', { newTop: top, rows: (await rowIds()).length });
 await page.waitForTimeout(1500);
 
-// --- ack-incident, list at rest: pick the top incident and ack it ------------------------------------
-const calm = top;
-const calmButton = page.locator(`[data-testid="incident-row"][data-id="${calm}"] [data-testid="ack"]`);
-let box = await calmButton.boundingBox();
-await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 25 });
-note('ack-incident (list at rest): pointer on Ack', { picked: calm, underPointer: await idUnderPointer(box.x + box.width / 2, box.y + box.height / 2) });
-await page.mouse.down(); await page.mouse.up();
-await page.locator(`[data-testid="incident-row"][data-id="${calm}"] [data-testid="acked"]`).waitFor();
-note('ack-incident (list at rest): row marked acked', { picked: calm });
-await page.mouse.move(640, 650, { steps: 15 });
+// --- ack-incident, list at rest: open the top incident's panel and ack it there ----------------------
+const panel = page.locator('[data-testid="incident-panel"]:visible');
+const panelNames = async () => (await panel.count()) ? (await panel.first().innerText()).match(/INC-\d+/)?.[0] ?? null : null;
+const rowsWithAckButton = () => page.locator('[data-testid="incident-row"] [data-testid="ack"]').count();
+async function pointAt(locator) {
+  const box = await locator.boundingBox();
+  const x = box.x + box.width / 2, y = box.y + box.height / 2;
+  await page.mouse.move(x, y, { steps: 25 });
+  return [x, y];
+}
+async function click() { await page.mouse.down(); await page.mouse.up(); }
+const rowOf = (id) => page.locator(`[data-testid="incident-row"][data-id="${id}"]`);
 
-// --- ack-incident, list moving: pick the second unacked incident, a new one arrives before the click --
+note('rows have no Ack button of their own', { ackButtonsInRows: await rowsWithAckButton() });
+const calm = top;
+await pointAt(rowOf(calm));
+await click();
+await panel.first().waitFor();
+note('ack-incident (list at rest): row clicked, panel open', { picked: calm, panelNames: await panelNames() });
+await page.waitForTimeout(1200);
+await pointAt(page.locator('[data-testid="panel-ack"]'));
+await click();
+await rowOf(calm).locator('[data-testid="acked"]').waitFor();
+note('ack-incident (list at rest): Ack pressed in the panel, row marked acked', { picked: calm });
+await page.mouse.move(640, 700, { steps: 15 });
+
+// --- ack-incident, list moving: the same moment as 00:34 in the step-one recording ---------------------
 top = await waitForNewTop((await rowIds())[0]);
 note('watch-board: another new incident at the top', { newTop: top });
 await page.waitForTimeout(2500);
 const picked = top; // on-call picks the incident that just came in
-const pickedButton = page.locator(`[data-testid="incident-row"][data-id="${picked}"] [data-testid="ack"]`);
-box = await pickedButton.boundingBox();
-const px = box.x + box.width / 2, py = box.y + box.height / 2;
-await page.mouse.move(px, py, { steps: 25 });
-note('ack-incident (list moving): pointer on Ack of the picked incident', { picked, underPointer: await idUnderPointer(px, py), pointer: [Math.round(px), Math.round(py)] });
+const [px, py] = await pointAt(rowOf(picked));
+note('ack-incident (list moving): pointer on the row of the picked incident', { picked, underPointer: await idUnderPointer(px, py) });
 const arrived = await waitForNewTop(picked); // the pointer does not move; the list does
 note('ack-incident (list moving): a new incident arrived; the rows moved down under the pointer', { arrived, picked, underPointerNow: await idUnderPointer(px, py) });
 await page.waitForTimeout(150); // a click that was already on its way
-await page.mouse.down(); await page.mouse.up();
-note('ack-incident (list moving): click, pointer never moved', { picked, underPointer: await idUnderPointer(px, py) });
-await page.locator('[data-testid="acked"]').nth(1).waitFor();
+await click();
+await page.waitForTimeout(300);
+note('ack-incident (list moving): click landed on another row; its panel opened; nothing acked', { picked, panelNames: await panelNames(), ackedRows: await page.locator('[data-testid="incident-row"]:has([data-testid="acked"])').evaluateAll((rows) => rows.map((r) => r.dataset.id)) });
+await page.waitForTimeout(2500); // on-call reads the panel: it names another incident
+await pointAt(rowOf(picked));
+await click();
+await page.waitForTimeout(300);
+note('ack-incident (list moving): picked row clicked again; the panel names the picked incident', { picked, panelNames: await panelNames() });
+await page.waitForTimeout(1200);
+await pointAt(page.locator('[data-testid="panel-ack"]'));
+await click();
+await rowOf(picked).locator('[data-testid="acked"]').waitFor();
 const ackedIds = await page.locator('[data-testid="incident-row"]:has([data-testid="acked"])').evaluateAll((rows) => rows.map((r) => r.dataset.id));
-note('ack-incident (list moving): result on the board', { picked, ackedRows: ackedIds, pickedIsAcked: ackedIds.includes(picked) });
+note('ack-incident (list moving): result on the board', { picked, ackedRows: ackedIds, pickedIsAcked: ackedIds.includes(picked), arrivedIsAcked: ackedIds.includes(arrived) });
+
+// --- watch-board with the panel open: the list still moves, the panel does not -------------------------
+const panelBox = await panel.first().boundingBox();
+const next = await waitForNewTop((await rowIds())[0]);
+const panelBoxAfter = await panel.first().boundingBox();
+note('watch-board: a new incident arrived with the panel open; the panel stayed in place', { newTop: next, panelNames: await panelNames(), panelMoved: panelBox.x !== panelBoxAfter.x || panelBox.y !== panelBoxAfter.y });
 await page.waitForTimeout(4000);
 note('end');
 
